@@ -25,7 +25,7 @@ def main():
     data: np.array = get_train_data()
     np.random.shuffle(data)
     line = int(data.shape[0] / 10)
-    entry = Entry(data, data[-line:])
+    entry = Entry(data[:-line], data[-line:])
     entry.run()
 
 

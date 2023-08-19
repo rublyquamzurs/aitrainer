@@ -1,5 +1,4 @@
 
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -7,30 +6,20 @@ import torch.nn.functional as F
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv1d(1, 32, 3, 1)
-        self.conv2 = nn.Conv1d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(1984, 128)
-        self.fc2 = nn.Linear(128, 32)
-        self.fc3 = nn.Linear(32, 8)
-        self.fc4 = nn.Linear(8, 2)
+        self.embed = nn.Embedding(80, 8)
+        self.lstm = nn.LSTM(input_size=8,
+                            hidden_size=64,
+                            num_layers=1,
+                            batch_first=True)
+        self.dropout = nn.Dropout(0.5)
+        self.flatten = nn.Flatten(1)
+        self.fc1 = nn.Linear(80 * 64, 2)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
+        x = self.embed(x)
+        x, _ = self.lstm(x)
+        x = self.dropout(x)
+        x = self.flatten(x)
         x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        x = F.relu(x)
-        x = self.fc3(x)
-        x = F.relu(x)
-        x = self.fc4(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        x = F.sigmoid(x)
+        return x
