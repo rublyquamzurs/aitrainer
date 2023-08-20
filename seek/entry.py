@@ -1,7 +1,6 @@
 
 import argparse
 
-import numpy as np
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ExponentialLR
@@ -16,39 +15,8 @@ VECTOR_LEN = 80
 
 class Entry:
     def __init__(self, train_data, test_data):
-        self.char_map = {"-": 1, "0": 2, "1": 3, "2": 4, "3": 5, "4": 6, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11, "a": 12, "b": 13, "c": 14, "d": 15, "e": 16, "f": 17, "g": 18, "h": 19, "i": 20, "j": 21, "k": 22, "l": 23, "m": 24, "n": 25, "o": 26, "p": 27, "q": 28, "r": 29, "s": 30, "t": 31, "u": 32, "v": 33, "w": 34, "x": 35, "y": 36, "z": 37}
-        self.trd, self.trl = self._transform(train_data)
-        self.ted, self.tel = self._transform(test_data)
-
-    def _transform(self, data):
-        count = data.shape[0]
-        t = np.zeros(shape=[count, VECTOR_LEN], dtype=np.int32)
-        lb = np.zeros(shape=[count, 2], dtype=np.float32)
-        for i in range(count):
-            t[i] = self.__get_flat_vector(data[i][0])
-            lb[i][int(data[i][1])] = 1.0
-        return t, lb
-
-    def __get_flat_vector(self, domain: str):
-        out = np.zeros(shape=VECTOR_LEN, dtype=np.int32)
-        if len(domain) > VECTOR_LEN:
-            raise ValueError("domain %s is beyond %d" % (domain, VECTOR_LEN))
-        for i, c in enumerate(domain):
-            if c in self.char_map:
-                out[i] = self.char_map[c]
-            else:
-                out[i] = 0
-        # ps = domain.lower().split(".")
-        # for i, p in enumerate(ps):
-        #     p = p.strip()
-        #     for j, c in enumerate(p):
-        #         if c in self.char_map:
-        #             out[i][j] = self.char_map[c]
-        #         else:
-        #             out[i][j] = 0
-        # detached = np.sqrt(np.sum(np.power(out, 2), axis=1, keepdims=True))
-        # return np.divide(out, detached, out=np.zeros_like(out), where=detached != 0)
-        return out
+        self.tr = train_data
+        self.te = test_data
 
     def run(self):
         # Training settings
@@ -73,7 +41,7 @@ class Entry:
                             help='random seed (default: 1)')
         parser.add_argument('--log-interval', type=int, default=1000, metavar='N',
                             help='how many batches to wait before logging training status')
-        parser.add_argument('--save-model', action='store_true', default=True,
+        parser.add_argument('--save-model', action='store_true', default=False,
                             help='For Saving the current Model')
         args = parser.parse_args()
         use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -97,10 +65,8 @@ class Entry:
             train_kwargs.update(cuda_kwargs)
             test_kwargs.update(cuda_kwargs)
 
-        dataset3 = TextDataset(self.trd, self.trl)
-        dataset4 = TextDataset(self.ted, self.tel)
-        train_loader = DataLoader(dataset3, **train_kwargs)
-        test_loader = DataLoader(dataset4, **test_kwargs)
+        train_loader = DataLoader(TextDataset.get_dump_ass(self.tr), **train_kwargs)
+        test_loader = DataLoader(TextDataset.get_dump_ass(self.te), **test_kwargs)
 
         model = Net().to(device)
         optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
@@ -112,4 +78,7 @@ class Entry:
             method.test(model, device, test_loader)
             scheduler.step()
             if epoch % 10 == 0 and args.save_model:
-                torch.save(model.state_dict(), "gda_lstm_epoch_%d.pt" % epoch)
+                torch.save(model.state_dict(), "dga_lstm_epoch_%d.pt" % epoch)
+
+        if args.save_model:
+            torch.save(model.state_dict(), "dga_lstm_epoch.pt")
